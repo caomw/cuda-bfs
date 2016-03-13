@@ -59,7 +59,7 @@ printf("\n");
 
     unsigned *d_V, *d_E;
     unsigned *d_F, *d_X, *d_C, *d_Fu;
-    unsigned *activeMask;
+    unsigned *activeMask, *prefixSums;
 
     size_t memSize = (graph.size() + 1) * sizeof(unsigned);
     
@@ -88,7 +88,7 @@ printf("\n");
     setUInt(activeMask + 0, sourceVertex); // set thread #source as active
     numActiveThreads = 1;
 
-    gpuErrchk(cudaMalloc(prefixSums, memSize));
+    gpuErrchk(cudaMalloc(&prefixSums, memSize));
     preallocBlockSums(graph.size() + 1);
 
     // Main loop

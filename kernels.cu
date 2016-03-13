@@ -8,7 +8,7 @@ void BFSKernel1(
     size_t graphSize, unsigned *V, unsigned *E, unsigned *F, 
     unsigned *X, unsigned *C, unsigned *Fu) {
 
-    int v = blockIdx.x * MAX_THREADS_PER_BLOCK + threadIdx.x;
+    int v = blockIdx.x * BLOCK_SIZE + threadIdx.x;
 
     // If vertex v exists and is active at current iteration
     if (v < graphSize and F[v]) {
@@ -32,7 +32,7 @@ void BFSKernel1(
 __global__
 void BFSKernel2(size_t graphSize, unsigned *F, unsigned *X, unsigned *Fu) {
 
-    int v = blockIdx.x * MAX_THREADS_PER_BLOCK + threadIdx.x;
+    int v = blockIdx.x * BLOCK_SIZE + threadIdx.x;
 
     // If vertex v exists and has recently joined the frontier
     if (v < graphSize and Fu[v]) {

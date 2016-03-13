@@ -1,11 +1,13 @@
+#include "errchk.cuh"
+
 #define NUM_BANKS 16
 #define LOG_NUM_BANKS 4
 
 #define CONFLICT_FREE_OFFSET(index) ((index) >> LOG_NUM_BANKS)
 
 template <bool isNP2>
-__device__ void loadSharedChunkFromMem(float *s_data,
-                                       const float *idata, 
+__device__ void loadSharedChunkFromMem(unsigned *s_data,
+                                       const unsigned *idata, 
                                        int n, int baseIndex,
                                        int& ai, int& bi, 
                                        int& mem_ai, int& mem_bi, 
@@ -31,8 +33,8 @@ __device__ void loadSharedChunkFromMem(float *s_data,
 
 template <bool isNP2>
 __device__
-void storeSharedChunkToMem(float* odata, 
-                                      const float* s_data,
+void storeSharedChunkToMem(unsigned* odata, 
+                                      const unsigned* s_data,
                                       int n, 
                                       int ai, int bi, 
                                       int mem_ai, int mem_bi,
@@ -50,8 +52,8 @@ void storeSharedChunkToMem(float* odata,
 
 template <bool storeSum>
 __device__
-void clearLastElement(float* s_data, 
-                                 float *blockSums, 
+void clearLastElement(unsigned* s_data, 
+                                 unsigned *blockSums, 
                                  int blockIndex) {
     if (threadIdx.x == 0) {
         int index = (blockDim.x << 1) - 1;
@@ -66,7 +68,7 @@ void clearLastElement(float* s_data,
 }
 
 __device__
-unsigned int buildSum(float *s_data) {
+unsigned int buildSum(unsigned *s_data) {
     unsigned int thid = threadIdx.x;
     unsigned int stride = 1;
     
@@ -91,7 +93,7 @@ unsigned int buildSum(float *s_data) {
 }
 
 __device__
-void scanRootToLeaves(float *s_data, unsigned int stride) {
+void scanRootToLeaves(unsigned *s_data, unsigned int stride) {
      unsigned int thid = threadIdx.x;
 
     for (int d = 1; d <= blockDim.x; d *= 2) {
@@ -108,7 +110,7 @@ void scanRootToLeaves(float *s_data, unsigned int stride) {
             ai += CONFLICT_FREE_OFFSET(ai);
             bi += CONFLICT_FREE_OFFSET(bi);
 
-            float t  = s_data[ai];
+            unsigned t  = s_data[ai];
             s_data[ai] = s_data[bi];
             s_data[bi] += t;
         }
@@ -117,7 +119,7 @@ void scanRootToLeaves(float *s_data, unsigned int stride) {
 
 template <bool storeSum>
 __device__
-void prescanBlock(float *data, int blockIndex, float *blockSums) {
+void prescanBlock(unsigned *data, int blockIndex, unsigned *blockSums) {
     int stride = buildSum(data);             
     clearLastElement<storeSum>(data, blockSums, 
                                (blockIndex == 0) ? blockIdx.x : blockIndex);
@@ -126,14 +128,14 @@ void prescanBlock(float *data, int blockIndex, float *blockSums) {
 
 template <bool storeSum, bool isNP2>
 __global__
-void prescan(float *odata, 
-                        const float *idata, 
-                        float *blockSums, 
+void prescan(unsigned *odata, 
+                        const unsigned *idata, 
+                        unsigned *blockSums, 
                         int n, 
                         int blockIndex, 
                         int baseIndex) {
     int ai, bi, mem_ai, mem_bi, bankOffsetA, bankOffsetB;
-    extern __shared__ float s_data[];
+    extern __shared__ unsigned s_data[];
 
     loadSharedChunkFromMem<isNP2>(s_data, idata, n, 
                                   (baseIndex == 0) ? 
@@ -149,12 +151,12 @@ void prescan(float *odata,
 }
 
 __global__
-void uniformAdd(float *data, 
-                           float *uniforms, 
+void uniformAdd(unsigned *data, 
+                           unsigned *uniforms, 
                            int n, 
                            int blockOffset, 
                            int baseIndex) {
-    __shared__ float uni;
+    __shared__ unsigned uni;
     if (threadIdx.x == 0)
         uni = uniforms[blockIdx.x + blockOffset];
     
