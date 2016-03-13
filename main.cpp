@@ -3,7 +3,9 @@
 
 int main() {
 
-    Graph graph(1);
+    Graph graph(2);
+    graph[0].push_back(1);
+    
     std::vector<unsigned> distances;
     BFS(graph, 0, distances);
 
