@@ -48,11 +48,11 @@ void BFS(Graph & graph, unsigned sourceVertex, std::vector<unsigned> & distances
     gpuErrchk(cudaMalloc(&d_Fu, memSize));
 
     gpuErrchk(cudaMalloc(&d_V, memSize));
-    gpuErrchk(cudaMemcpy(V.data(), d_V, memSize, cudaMemcpyHostToDevice));
+    gpuErrchk(cudaMemcpy(d_V, V.data(), memSize, cudaMemcpyHostToDevice));
 
     size_t memSizeE = totalEdges * sizeof(unsigned);
     gpuErrchk(cudaMalloc(&d_E, memSizeE));
-    gpuErrchk(cudaMemcpy(E.data(), d_E, memSizeE, cudaMemcpyHostToDevice));
+    gpuErrchk(cudaMemcpy(d_E, E.data(), memSizeE, cudaMemcpyHostToDevice));
 
     bool terminate = false;
 
