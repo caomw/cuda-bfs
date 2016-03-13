@@ -1,5 +1,6 @@
 #include "bfs.hpp"
 #include "kernels.cuh"
+#include "compaction.cuh"
 #include <stdio.h>
 
 extern __managed__ unsigned terminate;
@@ -8,6 +9,15 @@ extern __managed__ unsigned numActiveThreads;
 __host__
 void setUInt(unsigned *address, unsigned value) {
     gpuErrchk(cudaMemcpy(address, &value, sizeof(unsigned), cudaMemcpyHostToDevice));
+}
+
+__global__
+void output(int N, unsigned *ptr) {
+    printf("Prefix sums: ");
+    for (int i = 0; i < N; ++i) {
+        printf("%u ", ptr[i]);
+    }
+    printf("\n");
 }
 
 __host__
@@ -78,31 +88,32 @@ printf("\n");
     setUInt(activeMask + 0, sourceVertex); // set thread #source as active
     numActiveThreads = 1;
 
+    gpuErrchk(cudaMalloc(prefixSums, memSize));
+    preallocBlockSums(graph.size() + 1);
+
     // Main loop
 
     printf("Settled\n"); fflush(stdout);
 
     const size_t prefixSumGridSize = 
-        (graph.size() + MAX_THREADS_PER_BLOCK - 1) / MAX_THREADS_PER_BLOCK;
+        (graph.size() + BLOCK_SIZE - 1) / BLOCK_SIZE;
 
     while (true) {
 
         terminate = TRUE;
 
         const size_t gridSize = 
-            (numActiveThreads + MAX_THREADS_PER_BLOCK - 1) / MAX_THREADS_PER_BLOCK;
+            (numActiveThreads + BLOCK_SIZE - 1) / BLOCK_SIZE;
 
-        gpuErrchk(cudaDeviceSynchronize());
-
-        printf("Kernel 1, <<<%d, %d>>>\n", gridSize, MAX_THREADS_PER_BLOCK); fflush(stdout);
+        printf("Kernel 1, <<<%d, %d>>>\n", gridSize, BLOCK_SIZE); fflush(stdout);
         // launch kernel 1
-        BFSKernel1 <<<gridSize, MAX_THREADS_PER_BLOCK>>> (graph.size(), d_V, d_E, d_F, d_X, d_C, d_Fu);
+        BFSKernel1 <<<gridSize, BLOCK_SIZE>>> (graph.size(), d_V, d_E, d_F, d_X, d_C, d_Fu);
         gpuErrchk(cudaPeekAtLastError());
         gpuErrchk(cudaDeviceSynchronize());
 
-        printf("Kernel 2, <<<%d, %d>>>...", gridSize, MAX_THREADS_PER_BLOCK); fflush(stdout);
+        printf("Kernel 2, <<<%d, %d>>>...", gridSize, BLOCK_SIZE); fflush(stdout);
         // launch kernel 2
-        BFSKernel2 <<<gridSize, MAX_THREADS_PER_BLOCK>>> (graph.size(), d_F, d_X, d_Fu);
+        BFSKernel2 <<<gridSize, BLOCK_SIZE>>> (graph.size(), d_F, d_X, d_Fu);
         gpuErrchk(cudaPeekAtLastError());
         gpuErrchk(cudaDeviceSynchronize());
 
@@ -111,10 +122,10 @@ printf("\n");
         if (terminate) {
             break;
         } else {
-            gpuErrchk(cudaDeviceSynchronize()); // After reading terminate
-            // Get active threads list
-            //prefixSum <<<prefixSumGridSize, MAX_THREADS_PER_BLOCK>>> (d_F, activeMask);
-            //gather <<<
+            // Get prefix sums of F
+            prescanArray(prefixSums, d_F, graph.size() + 1);
+            output <<<1,1>>> (graph.size(), prefixSums);
+            gpuErrchk(cudaDeviceSynchronize());            
 
             printf("Kernel 3, <<<1, 1>>>\n"); fflush(stdout);
             getActiveMaskTemp <<<1, 1>>> (graph.size(), d_F, activeMask);
@@ -136,4 +147,6 @@ printf("\n");
     gpuErrchk(cudaFree(d_V));
     gpuErrchk(cudaFree(d_E));
     gpuErrchk(cudaFree(activeMask));
+    deallocBlockSums();
+    gpuErrchk(cudaFree(prefixSums));
 }

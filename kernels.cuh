@@ -9,7 +9,7 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=t
    }
 }
 
-#define MAX_THREADS_PER_BLOCK 256
+#define BLOCK_SIZE 256
 
 #define FALSE 0u
 #define  TRUE 1u
