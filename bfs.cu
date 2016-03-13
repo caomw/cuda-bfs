@@ -1,11 +1,6 @@
 #include "bfs.hpp"
 #include "kernels.cuh"
 
-__device__
-void setInt(unsigned *ptr, unsigned value) {
-    *ptr = value;
-}
-
 __host__
 void BFS(Graph & graph, unsigned sourceVertex, std::vector<unsigned> & distances) {
 
@@ -36,20 +31,23 @@ void BFS(Graph & graph, unsigned sourceVertex, std::vector<unsigned> & distances
 
     unsigned *d_V, *d_E;
     unsigned *d_F, *d_X, *d_C, *d_Fu;
+
+    unsigned one = 1;
     
     size_t memSize = graph.size() * sizeof(unsigned);
     
     gpuErrchk(cudaMalloc(&d_F, memSize));
     gpuErrchk(cudaMemset(d_F, 0, memSize));
-    setInt(d_F + sourceVertex, 1); // add source to frontier
+    gpuErrchk(cudaMemcpy(d_F + sourceVertex, &one, 
+        sizeof(unsigned), cudaMemcpyHostToDevice)); // add source to frontier
 
     gpuErrchk(cudaMalloc(&d_X, memSize));
     gpuErrchk(cudaMemset(d_X, 0, memSize));
-    setInt(d_X + sourceVertex, 1); // set source as visited
+    gpuErrchk(cudaMemcpy(d_X + sourceVertex, &one, 
+        sizeof(unsigned), cudaMemcpyHostToDevice)); // set source as visited
 
     gpuErrchk(cudaMalloc(&d_C, memSize));
-    gpuErrchk(cudaMemset(d_X, 0, memSize));
-    setInt(d_C + sourceVertex, 0); // set zero distance to source
+    gpuErrchk(cudaMemset(d_C + sourceVertex, 0, sizeof(unsigned))); // set zero distance to source
 
     gpuErrchk(cudaMalloc(&d_Fu, memSize));
 
