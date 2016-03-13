@@ -1,5 +1,6 @@
 #include "bfs.hpp"
 #include "kernels.cuh"
+#include <stdio.h>
 
 extern __managed__ unsigned terminate;
 extern __managed__ unsigned numActiveThreads;
@@ -73,6 +74,8 @@ void BFS(Graph & graph, unsigned sourceVertex, std::vector<unsigned> & distances
 
     // Main loop
 
+    printf("Settled\n"); fflush(stdout);
+
     const size_t prefixSumGridSize = 
         (graph.size() + MAX_THREADS_PER_BLOCK - 1) / MAX_THREADS_PER_BLOCK;
 
@@ -80,17 +83,17 @@ void BFS(Graph & graph, unsigned sourceVertex, std::vector<unsigned> & distances
         const size_t gridSize = 
             (numActiveThreads + MAX_THREADS_PER_BLOCK - 1) / MAX_THREADS_PER_BLOCK;
 
+        printf("Kernel 1, <<<%d, %d>>>\n", gridSize, MAX_THREADS_PER_BLOCK); fflush(stdout);
         // launch kernel 1
         BFSKernel1 <<<gridSize, MAX_THREADS_PER_BLOCK>>> (graph.size(), d_V, d_E, d_F, d_X, d_C, d_Fu);
         gpuErrchk(cudaPeekAtLastError());
         gpuErrchk(cudaDeviceSynchronize());
 
+        printf("Kernel 2, <<<%d, %d>>>\n", gridSize, MAX_THREADS_PER_BLOCK); fflush(stdout);
         // launch kernel 2
         BFSKernel2 <<<gridSize, MAX_THREADS_PER_BLOCK>>> (graph.size(), d_F, d_X, d_Fu);
         gpuErrchk(cudaPeekAtLastError());
         gpuErrchk(cudaDeviceSynchronize());
-
-        // copy terminate from GPU
 
         if (terminate) {
             break;
@@ -98,6 +101,7 @@ void BFS(Graph & graph, unsigned sourceVertex, std::vector<unsigned> & distances
             // Get active threads list
             //prefixSum <<<prefixSumGridSize, MAX_THREADS_PER_BLOCK>>> (d_F, activeMask);
             //gather <<<
+            printf("Kernel 3, <<<1, 1>>>\n"); fflush(stdout);
             getActiveMaskTemp <<<1, 1>>> (graph.size(), d_F, activeMask);
 
             //numActiveThreads
