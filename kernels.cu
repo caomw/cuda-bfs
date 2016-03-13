@@ -1,6 +1,5 @@
 #include "kernels.cuh"
 
-__device__ unsigned *activeMask;
 __managed__ unsigned terminate;
 __managed__ unsigned numActiveThreads;
 

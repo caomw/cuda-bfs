@@ -1,7 +1,6 @@
 #include "bfs.hpp"
 #include "kernels.cuh"
 
-extern __device__ unsigned *activeMask;
 extern __managed__ unsigned terminate;
 extern __managed__ unsigned numActiveThreads;
 
@@ -41,6 +40,7 @@ void BFS(Graph & graph, unsigned sourceVertex, std::vector<unsigned> & distances
 
     unsigned *d_V, *d_E;
     unsigned *d_F, *d_X, *d_C, *d_Fu;
+    unsigned *activeMask;
 
     size_t memSize = (graph.size() + 1) * sizeof(unsigned);
     
