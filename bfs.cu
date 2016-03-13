@@ -123,20 +123,23 @@ printf("\n");
         } else {
             // Get prefix sums of F
             prescanArray(prefixSums, d_F, graph.size() + 1);
+            cudaMemcpy(&numActiveThreads, prefixSums + graph.size(), sizeof(unsigned), cudaMemcpyDeviceToDevice);
             
             printf("Prefix sums: ");
             output <<<1,1>>> (graph.size(), prefixSums);
             gpuErrchk(cudaDeviceSynchronize());
 
             const size_t gridSizeCompaction = (graph.size() + BLOCK_SIZE - 1) / BLOCK_SIZE;
-            compactSIMD <<<gridSizeCompaction, BLOCK_SIZE>>> (prefixSums, activeMask);
+            compactSIMD <<<gridSizeCompaction, BLOCK_SIZE>>> (graph.size(), prefixSums, activeMask, BLOCK_SIZE);
+	    gpuErrchk(cudaPeekAtLastError());
+            gpuErrchk(cudaDeviceSynchronize());
 
             printf("Compacted: ");
-            output <<<1,1>>> (graph.size(), prefixSums);
+            output <<<1,1>>> (numActiveThreads, activeMask);
             gpuErrchk(cudaDeviceSynchronize());
 
             printf("Kernel 3, <<<1, 1>>>\n"); fflush(stdout);
-            getActiveMaskTemp <<<1, 1>>> (graph.size(), d_F, activeMask);
+            //getActiveMaskTemp <<<1, 1>>> (graph.size(), d_F, activeMask);
             gpuErrchk(cudaPeekAtLastError());
             gpuErrchk(cudaDeviceSynchronize());
         }
@@ -158,3 +161,4 @@ printf("\n");
     deallocBlockSums();
     gpuErrchk(cudaFree(prefixSums));
 }
+

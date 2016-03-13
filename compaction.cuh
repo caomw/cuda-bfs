@@ -8,4 +8,4 @@ __host__
 void prescanArray(unsigned *outArray, unsigned *inArray, int numElements);
 
 __global__
-void compactSIMD(unsigned *prefixSums, unsigned *activeMask);
+void compactSIMD(size_t N, unsigned *prefixSums, unsigned *activeMask, size_t blockSize);
