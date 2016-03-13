@@ -1,4 +1,4 @@
-#include "kernels.cuh"
+#include "bfs_kernels.cuh"
 
 __managed__ unsigned terminate;
 __managed__ unsigned numActiveThreads;

@@ -1,5 +1,5 @@
 #include "bfs.hpp"
-#include "kernels.cuh"
+#include "bfs_kernels.cuh"
 #include "compaction.cuh"
 #include <stdio.h>
 
@@ -124,8 +124,12 @@ printf("\n");
         } else {
             // Get prefix sums of F
             prescanArray(prefixSums, d_F, graph.size() + 1);
+            
             output <<<1,1>>> (graph.size(), prefixSums);
-            gpuErrchk(cudaDeviceSynchronize());            
+            gpuErrchk(cudaDeviceSynchronize());
+
+            const size_t gridSizeCompaction = (graph.size() + BLOCK_SIZE - 1) / BLOCK_SIZE;
+            compactSIMD <<<gridSizeCompaction, BLOCK_SIZE>>> (prefixSums, activeMask);
 
             printf("Kernel 3, <<<1, 1>>>\n"); fflush(stdout);
             getActiveMaskTemp <<<1, 1>>> (graph.size(), d_F, activeMask);
