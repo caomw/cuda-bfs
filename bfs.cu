@@ -1,6 +1,11 @@
 #include "bfs.hpp"
 #include "kernels.cuh"
 
+__device__
+void setInt(unsigned *ptr, unsigned value) {
+    *ptr = value;
+}
+
 __host__
 void BFS(Graph & graph, unsigned sourceVertex, std::vector<unsigned> & distances) {
 
@@ -36,14 +41,15 @@ void BFS(Graph & graph, unsigned sourceVertex, std::vector<unsigned> & distances
     
     gpuErrchk(cudaMalloc(&d_F, memSize));
     gpuErrchk(cudaMemset(d_F, 0, memSize));
-    gpuErrchk(cudaMemset(d_F + sourceVertex, 1, 1)); // add source to frontier
+    setInt(d_F + sourceVertex, 1); // add source to frontier
 
     gpuErrchk(cudaMalloc(&d_X, memSize));
     gpuErrchk(cudaMemset(d_X, 0, memSize));
-    gpuErrchk(cudaMemset(d_X + sourceVertex, 1, 1)); // set source as visited
+    setInt(d_X + sourceVertex, 1); // set source as visited
 
     gpuErrchk(cudaMalloc(&d_C, memSize));
-    gpuErrchk(cudaMemset(d_C + sourceVertex, 0, 1)); // set zero distance to source
+    gpuErrchk(cudaMemset(d_X, 0, memSize));
+    setInt(d_C + sourceVertex, 0); // set zero distance to source
 
     gpuErrchk(cudaMalloc(&d_Fu, memSize));
 
