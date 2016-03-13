@@ -1,5 +1,9 @@
 #include "kernels.cuh"
 
+__device__ unsigned *activeMask;
+__managed__ unsigned terminate;
+__managed__ unsigned numActiveThreads;
+
 __global__
 void BFSKernel1(
     size_t graphSize, unsigned *V, unsigned *E, unsigned *F, 

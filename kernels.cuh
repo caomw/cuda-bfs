@@ -14,10 +14,6 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=t
 #define FALSE 0u
 #define  TRUE 1u
 
-__device__ unsigned *activeMask;
-__managed__ unsigned terminate = TRUE;
-__managed__ unsigned numActiveThreads;
-
 __global__
 void BFSKernel1(
     size_t graphSize, unsigned *V, unsigned *E, unsigned *F, 

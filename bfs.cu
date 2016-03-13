@@ -1,9 +1,13 @@
 #include "bfs.hpp"
 #include "kernels.cuh"
 
+extern __device__ unsigned *activeMask;
+extern __managed__ unsigned terminate;
+extern __managed__ unsigned numActiveThreads;
+
 __host__
 void setUInt(unsigned *address, unsigned value) {
-
+    gpuErrchk(cudaMemcpy(address, &value, sizeof(unsigned), cudaMemcpyHostToDevice));
 }
 
 __host__
@@ -94,7 +98,7 @@ void BFS(Graph & graph, unsigned sourceVertex, std::vector<unsigned> & distances
             // Get active threads list
             //prefixSum <<<prefixSumGridSize, MAX_THREADS_PER_BLOCK>>> (d_F, activeMask);
             //gather <<<
-            getActiveMaskTemp <<<1, 1>>> (d_F, activeMask);
+            getActiveMaskTemp <<<1, 1>>> (graph.size(), d_F, activeMask);
 
             //numActiveThreads
         }
