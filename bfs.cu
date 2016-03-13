@@ -37,6 +37,14 @@ void BFS(Graph & graph, unsigned sourceVertex, std::vector<unsigned> & distances
     }
     V[graph.size()] = totalEdges;
 
+printf("V: ");
+for (int x : V) printf("%u ", x);
+printf("\n");
+
+printf("E: ");
+for (int x : E) printf("%u ", x);
+printf("\n");
+
     // Memory allocation and setup
 
     unsigned *d_V, *d_E;
@@ -54,6 +62,7 @@ void BFS(Graph & graph, unsigned sourceVertex, std::vector<unsigned> & distances
     setUInt(d_X + sourceVertex, TRUE); // set source as visited
 
     gpuErrchk(cudaMalloc(&d_C, memSize));
+    gpuErrchk(cudaMemset(d_C, 255, memSize));
     setUInt(d_C + sourceVertex, FALSE); // set zero distance to source
 
     gpuErrchk(cudaMalloc(&d_Fu, memSize));
@@ -66,11 +75,8 @@ void BFS(Graph & graph, unsigned sourceVertex, std::vector<unsigned> & distances
     gpuErrchk(cudaMemcpy(d_E, E.data(), memSizeE, cudaMemcpyHostToDevice));
 
     gpuErrchk(cudaMalloc(&activeMask, memSize));
-    gpuErrchk(cudaMemset(activeMask, FALSE, memSize));
-    setUInt(activeMask + sourceVertex, TRUE); // set thread #source as active
+    setUInt(activeMask + 0, sourceVertex); // set thread #source as active
     numActiveThreads = 1;
-
-    terminate = TRUE;
 
     // Main loop
 
@@ -80,8 +86,13 @@ void BFS(Graph & graph, unsigned sourceVertex, std::vector<unsigned> & distances
         (graph.size() + MAX_THREADS_PER_BLOCK - 1) / MAX_THREADS_PER_BLOCK;
 
     while (true) {
+
+        terminate = TRUE;
+
         const size_t gridSize = 
             (numActiveThreads + MAX_THREADS_PER_BLOCK - 1) / MAX_THREADS_PER_BLOCK;
+
+        gpuErrchk(cudaDeviceSynchronize());
 
         printf("Kernel 1, <<<%d, %d>>>\n", gridSize, MAX_THREADS_PER_BLOCK); fflush(stdout);
         // launch kernel 1
@@ -89,22 +100,26 @@ void BFS(Graph & graph, unsigned sourceVertex, std::vector<unsigned> & distances
         gpuErrchk(cudaPeekAtLastError());
         gpuErrchk(cudaDeviceSynchronize());
 
-        printf("Kernel 2, <<<%d, %d>>>\n", gridSize, MAX_THREADS_PER_BLOCK); fflush(stdout);
+        printf("Kernel 2, <<<%d, %d>>>...", gridSize, MAX_THREADS_PER_BLOCK); fflush(stdout);
         // launch kernel 2
         BFSKernel2 <<<gridSize, MAX_THREADS_PER_BLOCK>>> (graph.size(), d_F, d_X, d_Fu);
         gpuErrchk(cudaPeekAtLastError());
         gpuErrchk(cudaDeviceSynchronize());
 
+        printf("done\n"); fflush(stdout);
+
         if (terminate) {
             break;
         } else {
+            gpuErrchk(cudaDeviceSynchronize()); // After reading terminate
             // Get active threads list
             //prefixSum <<<prefixSumGridSize, MAX_THREADS_PER_BLOCK>>> (d_F, activeMask);
             //gather <<<
+
             printf("Kernel 3, <<<1, 1>>>\n"); fflush(stdout);
             getActiveMaskTemp <<<1, 1>>> (graph.size(), d_F, activeMask);
-
-            //numActiveThreads
+            gpuErrchk(cudaPeekAtLastError());
+            gpuErrchk(cudaDeviceSynchronize());
         }
     }
 

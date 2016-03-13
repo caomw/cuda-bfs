@@ -17,12 +17,12 @@ void BFSKernel1(
         F[v] = FALSE;
 
         // Iterate over v's neighbors
-        for (size_t edge = V[v]; edge < V[v+1]; ++edge) {
+        for (unsigned edge = V[v]; edge < V[v+1]; ++edge) {
             unsigned neighbor = E[edge];
 
             // If neighbor wasn't visited
             if (not X[neighbor]) {
-                ++C[neighbor];
+                C[neighbor] = C[v] + 1;
                 Fu[neighbor] = TRUE;
             }
         }
@@ -31,6 +31,7 @@ void BFSKernel1(
 
 __global__
 void BFSKernel2(size_t graphSize, unsigned *F, unsigned *X, unsigned *Fu) {
+
     int v = blockIdx.x * MAX_THREADS_PER_BLOCK + threadIdx.x;
 
     // If vertex v exists and has recently joined the frontier
@@ -47,20 +48,26 @@ void BFSKernel2(size_t graphSize, unsigned *F, unsigned *X, unsigned *Fu) {
 
 __global__
 void getActiveMaskTemp(size_t graphSize, unsigned *F, unsigned *activeMask) {
+    printf("K3, F[] = ");
     for (int i = 0; i < graphSize; ++i) {
         printf("%u ", F[i]);
-    }
-    printf("\n");
-
-    for (int i = 0; i < graphSize; ++i) {
-        printf("%u ", activeMask[i]);
     }
     printf("\n");
 
     numActiveThreads = 0;
     for (int i = 0; i < graphSize; ++i) {
         if (F[i]) {
-            activeMask[numActiveThreads++] = i;
+            activeMask[numActiveThreads] = i;
+            ++numActiveThreads;
         }
     }
+
+    printf("K3, activeMask[AFTER] = ");
+    for (int i = 0; i < numActiveThreads; ++i) {
+        printf("%u ", activeMask[i]);
+    }
+    printf("\n");
+
+    printf("K3, nAT = %u\n", numActiveThreads);
 }
+
