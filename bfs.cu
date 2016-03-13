@@ -131,7 +131,7 @@ printf("\n");
 
             const size_t gridSizeCompaction = (graph.size() + BLOCK_SIZE - 1) / BLOCK_SIZE;
             compactSIMD <<<gridSizeCompaction, BLOCK_SIZE>>> (graph.size(), prefixSums, activeMask, BLOCK_SIZE);
-	    gpuErrchk(cudaPeekAtLastError());
+            gpuErrchk(cudaPeekAtLastError());
             gpuErrchk(cudaDeviceSynchronize());
 
             printf("Compacted: ");

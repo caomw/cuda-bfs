@@ -1,7 +1,5 @@
 #include "scan.cu"
 
-extern __managed__ unsigned numActiveThreads;
-
 __global__
 void compactSIMD(size_t N, unsigned *prefixSums, unsigned *activeMask, size_t blockSize) {
 
