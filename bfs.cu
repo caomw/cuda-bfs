@@ -13,7 +13,6 @@ void setUInt(unsigned *address, unsigned value) {
 
 __global__
 void output(int N, unsigned *ptr) {
-    printf("Prefix sums: ");
     for (int i = 0; i < N; ++i) {
         printf("%u ", ptr[i]);
     }
@@ -125,11 +124,16 @@ printf("\n");
             // Get prefix sums of F
             prescanArray(prefixSums, d_F, graph.size() + 1);
             
+            printf("Prefix sums: ");
             output <<<1,1>>> (graph.size(), prefixSums);
             gpuErrchk(cudaDeviceSynchronize());
 
             const size_t gridSizeCompaction = (graph.size() + BLOCK_SIZE - 1) / BLOCK_SIZE;
             compactSIMD <<<gridSizeCompaction, BLOCK_SIZE>>> (prefixSums, activeMask);
+
+            printf("Compacted: ");
+            output <<<1,1>>> (graph.size(), prefixSums);
+            gpuErrchk(cudaDeviceSynchronize());
 
             printf("Kernel 3, <<<1, 1>>>\n"); fflush(stdout);
             getActiveMaskTemp <<<1, 1>>> (graph.size(), d_F, activeMask);

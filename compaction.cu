@@ -3,10 +3,16 @@
 extern __managed__ unsigned numActiveThreads;
 
 __global__
-void compactSIMD(unsigned *prefixSums, unsigned *activeMask, size_t blockSize) {
-    size_t blockStart = blockIdx.x * blockSize;
-    size_t blockEnd = (blockIdx.x + 1) * blockSize;
+void compactSIMD(size_t N, unsigned *prefixSums, unsigned *activeMask, size_t blockSize) {
 
-    unsigned validElemsNumber = prefixSums[blockEnd] - prefixSums[blockStart];
-    
+    size_t blockStart = blockIdx.x * blockSize;
+    // Vertex assigned to current thread
+    size_t v = blockStart + threadIdx.x;
+
+    if (v < N) {
+        // Can possibly be accelerated by using shared memory
+        if (prefixSums[v+1] != prefixSums[v]) {
+            activeMask[prefixSums[v]] = v;
+        }
+    }
 }
