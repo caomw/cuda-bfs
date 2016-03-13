@@ -47,6 +47,16 @@ void BFSKernel2(size_t graphSize, unsigned *F, unsigned *X, unsigned *Fu) {
 
 __global__
 void getActiveMaskTemp(size_t graphSize, unsigned *F, unsigned *activeMask) {
+    for (int i = 0; i < graphSize; ++i) {
+        printf("%u ", F[i]);
+    }
+    printf("\n");
+
+    for (int i = 0; i < graphSize; ++i) {
+        printf("%u ", activeMask[i]);
+    }
+    printf("\n");
+
     numActiveThreads = 0;
     for (int i = 0; i < graphSize; ++i) {
         if (F[i]) {
