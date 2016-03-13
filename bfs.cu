@@ -125,7 +125,7 @@ printf("\n");
 
     // Download result
 
-    gpuErrchk(cudaMemcpy(distances.data(), d_C, memSize, cudaMemcpyDeviceToHost));
+    gpuErrchk(cudaMemcpy(distances.data(), d_C, memSize-sizeof(unsigned), cudaMemcpyDeviceToHost));
 
     // Free memory
 
