@@ -60,7 +60,7 @@ void BFS(Graph & graph, unsigned sourceVertex, std::vector<unsigned> & distances
     gpuErrchk(cudaMalloc(&d_E, memSizeE));
     gpuErrchk(cudaMemcpy(d_E, E.data(), memSizeE, cudaMemcpyHostToDevice));
 
-    gpuErrchk(cudaMalloc(activeMask, memSize));
+    gpuErrchk(cudaMalloc(&activeMask, memSize));
     gpuErrchk(cudaMemset(activeMask, FALSE, memSize));
     setUInt(activeMask + sourceVertex, TRUE); // set thread #source as active
     numActiveThreads = 1;
