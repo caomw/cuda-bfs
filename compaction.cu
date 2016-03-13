@@ -9,7 +9,6 @@ void compactSIMD(size_t N, unsigned *prefixSums, unsigned *activeMask, size_t bl
 
     if (v < N) {
         // Can possibly be accelerated by using shared memory
-        printf("Compact, v = %u, pS[v] = %u\n", v, prefixSums[v]);
         if (prefixSums[v+1] != prefixSums[v]) {
             activeMask[prefixSums[v]] = v;
         }
