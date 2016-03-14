@@ -3,7 +3,7 @@
 #include "compaction.cuh"
 #include <stdio.h>
 
-extern __managed__ unsigned terminate;
+extern __device__  unsigned terminate;
 extern __managed__ unsigned numActiveThreads;
 
 __host__
@@ -71,10 +71,11 @@ printf("\n");
     setUInt(d_X + sourceVertex, TRUE); // set source as visited
 
     gpuErrchk(cudaMalloc(&d_C, memSize));
-    gpuErrchk(cudaMemset(d_C, 255, memSize));
+    gpuErrchk(cudaMemset(d_C, 255, memSize)); // set "infinite" distance
     setUInt(d_C + sourceVertex, FALSE); // set zero distance to source
 
     gpuErrchk(cudaMalloc(&d_Fu, memSize));
+    gpuErrchk(cudaMemset(d_Fu, FALSE, memSize));
 
     gpuErrchk(cudaMalloc(&d_V, memSize));
     gpuErrchk(cudaMemcpy(d_V, V.data(), memSize, cudaMemcpyHostToDevice));
@@ -99,26 +100,39 @@ printf("\n");
 
     while (true) {
 
-        terminate = TRUE;
+        // Terminate <- TRUE
+        unsigned terminateHost = TRUE;
+        gpuErrchk(cudaMemcpyToSymbol(terminate, &terminateHost, sizeof(unsigned)));
 
-        const size_t gridSize = 
+        // Kernel 1: need to assign ACTIVE vertices to SIMD lanes (threads)
+        const size_t gridSizeK1 = 
             (numActiveThreads + BLOCK_SIZE - 1) / BLOCK_SIZE;
 
-        printf("Kernel 1, <<<%d, %d>>>\n", gridSize, BLOCK_SIZE); fflush(stdout);
+        printf("Kernel 1, <<<%d, %d>>>\n", gridSizeK1, BLOCK_SIZE); fflush(stdout);
         // launch kernel 1
-        BFSKernel1 <<<gridSize, BLOCK_SIZE>>> (graph.size(), d_V, d_E, d_F, d_X, d_C, d_Fu);
+        BFSKernel1 <<<gridSizeK1, BLOCK_SIZE>>> (graph.size(), activeMask, d_V, d_E, d_F, d_X, d_C, d_Fu);
         gpuErrchk(cudaPeekAtLastError());
         gpuErrchk(cudaDeviceSynchronize());
 
-        printf("Kernel 2, <<<%d, %d>>>...", gridSize, BLOCK_SIZE); fflush(stdout);
+        // Kernel 2: need to assign ALL vertices to SIMD lanes
+        const size_t gridSizeK2 =
+            (graph.size() + BLOCK_SIZE - 1) / BLOCK_SIZE;
+
+        printf("Kernel 2, <<<%d, %d>>>...", gridSizeK2, BLOCK_SIZE); fflush(stdout);
         // launch kernel 2
-        BFSKernel2 <<<gridSize, BLOCK_SIZE>>> (graph.size(), d_F, d_X, d_Fu);
+        BFSKernel2 <<<gridSizeK2, BLOCK_SIZE>>> (graph.size(), d_F, d_X, d_Fu);
         gpuErrchk(cudaPeekAtLastError());
         gpuErrchk(cudaDeviceSynchronize());
 
         printf("done\n"); fflush(stdout);
 
-        if (terminate) {
+        gpuErrchk(cudaMemcpyFromSymbol(&terminateHost, terminate, sizeof(unsigned)));
+
+        if (terminateHost) {
+            printf("terminateHost is %u\n", terminateHost);
+            unsigned *tPtr;
+            gpuErrchk(cudaGetSymbolAddress((void**)&tPtr, terminate));
+            output <<<1,1>>> (1, tPtr);
             break;
         } else {
             // Get prefix sums of F

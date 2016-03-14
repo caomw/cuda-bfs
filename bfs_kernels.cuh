@@ -9,8 +9,8 @@
 
 __global__
 void BFSKernel1(
-    size_t graphSize, unsigned *V, unsigned *E, unsigned *F, 
-    unsigned *X, unsigned *C, unsigned *Fu);
+    size_t graphSize, unsigned *activeMask, unsigned *V, unsigned *E,
+    unsigned *F, unsigned *X, unsigned *C, unsigned *Fu);
 
 __global__
 void BFSKernel2(size_t graphSize, unsigned *F, unsigned *X, unsigned *Fu);

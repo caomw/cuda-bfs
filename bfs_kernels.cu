@@ -1,17 +1,19 @@
 #include "bfs_kernels.cuh"
 
-__managed__ unsigned terminate;
+__device__  unsigned terminate;
 __managed__ unsigned numActiveThreads;
 
 __global__
 void BFSKernel1(
-    size_t graphSize, unsigned *V, unsigned *E, unsigned *F, 
-    unsigned *X, unsigned *C, unsigned *Fu) {
+    size_t graphSize, unsigned *activeMask, unsigned *V, unsigned *E,
+    unsigned *F, unsigned *X, unsigned *C, unsigned *Fu) {
 
-    int v = blockIdx.x * BLOCK_SIZE + threadIdx.x;
+    unsigned activeMaskIdx = blockIdx.x * BLOCK_SIZE + threadIdx.x;
 
-    // If vertex v exists and is active at current iteration
-    if (v < graphSize and F[v]) {
+    // If vertex is active at current iteration
+    if (activeMaskIdx < numActiveThreads) {
+
+        unsigned v = activeMask[activeMaskIdx];
 
         // Remove v from current frontier
         F[v] = FALSE;
@@ -43,6 +45,7 @@ void BFSKernel2(size_t graphSize, unsigned *F, unsigned *X, unsigned *Fu) {
         // Clean up the new frontier
         Fu[v] = FALSE;
         terminate = FALSE;
+        printf("Term is now %u\n", terminate);
     }
 }
 
