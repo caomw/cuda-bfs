@@ -2,9 +2,9 @@
 #include <fstream>
 #include "bfs.hpp"
 
-int main() {
+int main(int argc, char **argv) {
 
-    std::ifstream in("graph.txt");
+    std::ifstream in(argv[1]);
     int n; in >> n;
     Graph graph(n);
     int m; in >> m;
@@ -19,10 +19,10 @@ int main() {
     std::vector<unsigned> distances;
     BFS(graph, 0, distances);
     
+    ofstream out("result_gpu.txt");
     for (int i = 0; i < distances.size(); ++i) {
-        std::cout << distances[i] << " ";
+        out << distances[i] << " ";
     }
-    std::cout << std::endl;
 
     return 0;
 }
