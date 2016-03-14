@@ -45,17 +45,12 @@ void BFSKernel2(size_t graphSize, unsigned *F, unsigned *X, unsigned *Fu) {
         // Clean up the new frontier
         Fu[v] = FALSE;
         terminate = FALSE;
-        printf("Term is now %u\n", terminate);
     }
 }
 
+// Very slow but correct "active mask" calculation; for debugging
 __global__
 void getActiveMaskTemp(size_t graphSize, unsigned *F, unsigned *activeMask) {
-    printf("K3, F[] = ");
-    for (int i = 0; i < graphSize; ++i) {
-        printf("%u ", F[i]);
-    }
-    printf("\n");
 
     numActiveThreads = 0;
     for (int i = 0; i < graphSize; ++i) {
@@ -64,13 +59,5 @@ void getActiveMaskTemp(size_t graphSize, unsigned *F, unsigned *activeMask) {
             ++numActiveThreads;
         }
     }
-
-    printf("K3, activeMask[AFTER] = ");
-    for (int i = 0; i < numActiveThreads; ++i) {
-        printf("%u ", activeMask[i]);
-    }
-    printf("\n");
-
-    printf("K3, nAT = %u\n", numActiveThreads);
 }
 

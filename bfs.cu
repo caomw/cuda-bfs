@@ -11,6 +11,7 @@ void setUInt(unsigned *address, unsigned value) {
     gpuErrchk(cudaMemcpy(address, &value, sizeof(unsigned), cudaMemcpyHostToDevice));
 }
 
+// If you are going to debug
 __global__
 void output(int N, unsigned *ptr) {
     for (int i = 0; i < N; ++i) {
@@ -45,14 +46,6 @@ void BFS(Graph & graph, unsigned sourceVertex, std::vector<unsigned> & distances
         }
     }
     V[graph.size()] = totalEdges;
-
-printf("V: ");
-for (int x : V) printf("%u ", x);
-printf("\n");
-
-printf("E: ");
-for (int x : E) printf("%u ", x);
-printf("\n");
 
     // Memory allocation and setup
 
@@ -93,8 +86,6 @@ printf("\n");
 
     // Main loop
 
-    printf("Settled\n"); fflush(stdout);
-
     const size_t prefixSumGridSize = 
         (graph.size() + BLOCK_SIZE - 1) / BLOCK_SIZE;
 
@@ -108,7 +99,6 @@ printf("\n");
         const size_t gridSizeK1 = 
             (numActiveThreads + BLOCK_SIZE - 1) / BLOCK_SIZE;
 
-        printf("Kernel 1, <<<%d, %d>>>\n", gridSizeK1, BLOCK_SIZE); fflush(stdout);
         // launch kernel 1
         BFSKernel1 <<<gridSizeK1, BLOCK_SIZE>>> (graph.size(), activeMask, d_V, d_E, d_F, d_X, d_C, d_Fu);
         gpuErrchk(cudaPeekAtLastError());
@@ -118,42 +108,25 @@ printf("\n");
         const size_t gridSizeK2 =
             (graph.size() + BLOCK_SIZE - 1) / BLOCK_SIZE;
 
-        printf("Kernel 2, <<<%d, %d>>>...", gridSizeK2, BLOCK_SIZE); fflush(stdout);
         // launch kernel 2
         BFSKernel2 <<<gridSizeK2, BLOCK_SIZE>>> (graph.size(), d_F, d_X, d_Fu);
         gpuErrchk(cudaPeekAtLastError());
         gpuErrchk(cudaDeviceSynchronize());
 
-        printf("done\n"); fflush(stdout);
-
         gpuErrchk(cudaMemcpyFromSymbol(&terminateHost, terminate, sizeof(unsigned)));
 
         if (terminateHost) {
-            printf("terminateHost is %u\n", terminateHost);
-            unsigned *tPtr;
-            gpuErrchk(cudaGetSymbolAddress((void**)&tPtr, terminate));
-            output <<<1,1>>> (1, tPtr);
             break;
         } else {
             // Get prefix sums of F
             prescanArray(prefixSums, d_F, graph.size() + 1);
             cudaMemcpy(&numActiveThreads, prefixSums + graph.size(), sizeof(unsigned), cudaMemcpyDeviceToDevice);
             
-            printf("Prefix sums: ");
-            output <<<1,1>>> (graph.size(), prefixSums);
-            gpuErrchk(cudaDeviceSynchronize());
-
             const size_t gridSizeCompaction = (graph.size() + BLOCK_SIZE - 1) / BLOCK_SIZE;
             compactSIMD <<<gridSizeCompaction, BLOCK_SIZE>>> (graph.size(), prefixSums, activeMask, BLOCK_SIZE);
             gpuErrchk(cudaPeekAtLastError());
             gpuErrchk(cudaDeviceSynchronize());
 
-            printf("Compacted: ");
-            output <<<1,1>>> (numActiveThreads, activeMask);
-            gpuErrchk(cudaDeviceSynchronize());
-
-            printf("Kernel 3, <<<1, 1>>>\n"); fflush(stdout);
-            //getActiveMaskTemp <<<1, 1>>> (graph.size(), d_F, activeMask);
             gpuErrchk(cudaPeekAtLastError());
             gpuErrchk(cudaDeviceSynchronize());
         }
